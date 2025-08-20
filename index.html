@@ -76,10 +76,15 @@
 </head>
 <body>
 
+
   <h1>📄 Buscador de Fichas Técnicas (PDF)</h1>
+  <button onclick="applyLogoToAll()">Descargar todos los PDFs con restricciones de alcohol</button>
   <input type="text" id="search" placeholder="Buscar por nombre..." autocomplete="off">
 
   <div id="file-list">Cargando archivos...</div>
+
+  <!-- Librería PDF-lib -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <script>
     const pdfFiles = [
@@ -373,6 +378,7 @@
     ];
 
     const folderPath = './pdfs/';
+    const logoUrl = './logo.png';
     const fileListElement = document.getElementById('file-list');
     const searchInput = document.getElementById('search');
 
@@ -382,7 +388,6 @@
         fileListElement.innerHTML = '<div class="no-results">No se encontraron resultados.</div>';
         return;
       }
-
       filteredFiles.forEach(file => {
         const div = document.createElement('div');
         div.className = 'file-item';
@@ -390,7 +395,13 @@
         link.href = folderPath + file;
         link.textContent = file;
         link.target = '_blank';
+        // Botón para descargar con logo
+        const logoBtn = document.createElement('button');
+        logoBtn.textContent = 'Descargar con restricciones de alcohol';
+        logoBtn.style.marginLeft = '1em';
+        logoBtn.onclick = () => addLogoToPdf(link.href, file);
         div.appendChild(link);
+        div.appendChild(logoBtn);
         fileListElement.appendChild(div);
       });
     }
@@ -408,7 +419,50 @@
 
     // Render inicial
     renderFiles(pdfFiles);
+
+    // Función para agregar logo a un PDF
+    async function addLogoToPdf(pdfUrl, fileName) {
+      try {
+        const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+        const pngImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+        const pngImage = await pdfDoc.embedPng(pngImageBytes);
+        const pages = pdfDoc.getPages();
+        // Tamaño en pixeles aproximado para 6cm x 3cm (a 72dpi: 1cm ≈ 28.35px)
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+          // El logo ocupa todo el ancho de la página, centrado abajo
+          const logoWidth = width - 60; // 30px de margen a cada lado
+          const originalWidth = 2315.4268;
+          const originalHeight = 90.8682;
+          const logoHeight = (logoWidth / originalWidth) * originalHeight;
+          page.drawImage(pngImage, {
+            x: 30, // margen izquierdo
+            y: 10, // margen inferior
+            width: logoWidth,
+            height: logoHeight,
+          });
+        }
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+      } catch (error) {
+        alert('Error al agregar el logo: ' + error.message);
+      }
+    }
+
+    // Descargar todos los PDFs con logo
+    function applyLogoToAll() {
+      pdfFiles.forEach(file => {
+        addLogoToPdf(folderPath + file, file);
+      });
+    }
   </script>
+
 
 </body>
 </html>

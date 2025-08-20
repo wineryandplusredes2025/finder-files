@@ -391,16 +391,16 @@
       filteredFiles.forEach(file => {
         const div = document.createElement('div');
         div.className = 'file-item';
-        const link = document.createElement('a');
-        link.href = folderPath + file;
-        link.textContent = file;
-        link.target = '_blank';
+        // Solo mostrar el nombre del archivo como texto
+        const fileTitle = document.createElement('span');
+        fileTitle.textContent = file;
+        fileTitle.style.fontWeight = '500';
         // Botón para descargar con logo
         const logoBtn = document.createElement('button');
         logoBtn.textContent = 'Descargar con restricciones de alcohol';
         logoBtn.style.marginLeft = '1em';
-        logoBtn.onclick = () => addLogoToPdf(link.href, file);
-        div.appendChild(link);
+        logoBtn.onclick = () => addLogoToPdf(folderPath + file, file);
+        div.appendChild(fileTitle);
         div.appendChild(logoBtn);
         fileListElement.appendChild(div);
       });

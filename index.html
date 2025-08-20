@@ -388,6 +388,13 @@
         fileListElement.innerHTML = '<div class="no-results">No se encontraron resultados.</div>';
         return;
       }
+      const logo2Files = [
+        'TEHUACAN BRILLANTE LATA SLEEK.pdf',
+        'TEHUACAN BRILLANTE NARANJADA.pdf',
+        'TEHUACAN BRILLANTE LIMONADA.pdf',
+        'Tehuacan Brillante.pdf',
+        'Agua de Piedra.pdf'
+      ];
       filteredFiles.forEach(file => {
         const div = document.createElement('div');
         div.className = 'file-item';
@@ -397,9 +404,12 @@
         fileTitle.style.fontWeight = '500';
         // Botón para descargar con logo
         const logoBtn = document.createElement('button');
-        logoBtn.textContent = 'Descargar con restricciones de alcohol';
+        logoBtn.textContent = logo2Files.includes(file) ? 'Descargar Pdf' : 'Descargar con restricciones de alcohol';
         logoBtn.style.marginLeft = '1em';
-        logoBtn.onclick = () => addLogoToPdf(folderPath + file, file);
+        logoBtn.onclick = () => {
+          const logoToUse = logo2Files.includes(file) ? './logo2.png' : logoUrl;
+          addLogoToPdf(folderPath + file, file, logoToUse);
+        };
         div.appendChild(fileTitle);
         div.appendChild(logoBtn);
         fileListElement.appendChild(div);
@@ -421,24 +431,22 @@
     renderFiles(pdfFiles);
 
     // Función para agregar logo a un PDF
-    async function addLogoToPdf(pdfUrl, fileName) {
+    async function addLogoToPdf(pdfUrl, fileName, logoPath = logoUrl) {
       try {
         const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
-        const pngImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
+        const pngImageBytes = await fetch(logoPath).then(res => res.arrayBuffer());
         const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
         const pngImage = await pdfDoc.embedPng(pngImageBytes);
         const pages = pdfDoc.getPages();
-        // Tamaño en pixeles aproximado para 6cm x 3cm (a 72dpi: 1cm ≈ 28.35px)
         for (const page of pages) {
           const { width, height } = page.getSize();
-          // El logo ocupa todo el ancho de la página, centrado abajo
           const logoWidth = width - 60; // 30px de margen a cada lado
           const originalWidth = 2315.4268;
           const originalHeight = 90.8682;
           const logoHeight = (logoWidth / originalWidth) * originalHeight;
           page.drawImage(pngImage, {
-            x: 30, // margen izquierdo
-            y: 10, // margen inferior
+            x: 30,
+            y: 10,
             width: logoWidth,
             height: logoHeight,
           });
@@ -446,10 +454,10 @@
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  a.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
       } catch (error) {
         alert('Error al agregar el logo: ' + error.message);
       }

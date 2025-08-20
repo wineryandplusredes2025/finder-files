@@ -78,13 +78,15 @@
 
 
   <h1>📄 Buscador de Fichas Técnicas (PDF)</h1>
-  <button onclick="applyLogoToAll()">Descargar todos los PDFs con restricciones de alcohol</button>
+  <button onclick="downloadAlcoholRestrictedZip()">Descargar ZIP con restricciones de alcohol</button>
   <input type="text" id="search" placeholder="Buscar por nombre..." autocomplete="off">
 
   <div id="file-list">Cargando archivos...</div>
 
   <!-- Librería PDF-lib -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- Librería JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <script>
     const pdfFiles = [
@@ -463,10 +465,52 @@
       }
     }
 
-    // Descargar todos los PDFs con logo
-    function applyLogoToAll() {
-      pdfFiles.forEach(file => {
-        addLogoToPdf(folderPath + file, file);
+    // Descargar todos los PDFs con restricciones de alcohol en un ZIP (excluyendo los de 'Descargar Pdf')
+    async function downloadAlcoholRestrictedZip() {
+      const logo2Files = [
+        'TEHUACAN BRILLANTE LATA SLEEK.pdf',
+        'TEHUACAN BRILLANTE NARANJADA.pdf',
+        'TEHUACAN BRILLANTE LIMONADA.pdf',
+        'Tehuacan Brillante.pdf',
+        'Agua de Piedra.pdf'
+      ];
+      const filesToZip = pdfFiles.filter(file => !logo2Files.includes(file));
+      const zip = new JSZip();
+      const logoPath = logoUrl;
+      // Procesar cada PDF y agregarlo al ZIP
+      for (const file of filesToZip) {
+        try {
+          const existingPdfBytes = await fetch(folderPath + file).then(res => res.arrayBuffer());
+          const pngImageBytes = await fetch(logoPath).then(res => res.arrayBuffer());
+          const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+          const pngImage = await pdfDoc.embedPng(pngImageBytes);
+          const pages = pdfDoc.getPages();
+          for (const page of pages) {
+            const { width, height } = page.getSize();
+            const logoWidth = width - 60;
+            const originalWidth = 2315.4268;
+            const originalHeight = 90.8682;
+            const logoHeight = (logoWidth / originalWidth) * originalHeight;
+            page.drawImage(pngImage, {
+              x: 30,
+              y: 10,
+              width: logoWidth,
+              height: logoHeight,
+            });
+          }
+          const pdfBytes = await pdfDoc.save();
+          zip.file(file, pdfBytes);
+        } catch (error) {
+          console.warn('Error procesando ' + file + ': ' + error.message);
+        }
+      }
+      // Generar y descargar el ZIP
+      zip.generateAsync({ type: 'blob' }).then(function(content) {
+        const zipName = 'PDFs_con_restricciones_de_alcohol.zip';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = zipName;
+        a.click();
       });
     }
   </script>

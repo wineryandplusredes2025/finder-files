@@ -42,8 +42,10 @@
         </div>
       </label>
     </div>
-    <div id="status" style="margin-top:8px;color:#333"></div>
-    <div id="file-list"></div>
+  <div id="status" style="margin-top:8px;color:#333"></div>
+  <div id="file-list"></div>
+  <!-- contenedor para previsualización flotante -->
+  <div id="preview" style="position:fixed;display:none;z-index:9999;max-width:360px;max-height:480px;border-radius:6px;overflow:hidden;box-shadow:0 8px 24px rgba(2,6,23,.6);background:#fff"></div>
 
     <script>
     // Cargar lista de PDFs desde pdfs/names.txt para mantener sincronización con la carpeta
@@ -97,7 +99,10 @@
         const div = document.createElement('div');
         div.className = 'file-item';
         const fileTitle = document.createElement('span');
-        fileTitle.textContent = file;
+          fileTitle.textContent = file;
+          // mostrar previsualizador al pasar el mouse
+          fileTitle.addEventListener('mouseenter', (ev) => showPreview(file, ev));
+          fileTitle.addEventListener('mouseleave', () => hidePreview());
         fileTitle.style.fontWeight = '500';
         const logoBtn = document.createElement('button');
         logoBtn.textContent = logo2Files.includes(file) ? 'Descargar Pdf' : 'Descargar con restricciones de alcohol';
@@ -158,6 +163,81 @@
         alert('Error al agregar el logo: ' + error.message);
       }
     }
+
+    // Previsualizador PDF (carga al hover)
+    let previewTimeout = null;
+    let hidePreviewTimeout = null;
+    function showPreview(file, ev) {
+      // cancelar cualquier hide pendiente y debounce de carga
+      clearTimeout(hidePreviewTimeout);
+      clearTimeout(previewTimeout);
+      previewTimeout = setTimeout(() => {
+        const preview = document.getElementById('preview');
+        if (!preview) return;
+        // calcular tamaño en base al ancho del texto hovered (ev.target)
+        const pad = 12;
+        const vw = window.innerWidth;
+        const targetRect = ev.target.getBoundingClientRect ? ev.target.getBoundingClientRect() : { width: 200, left: ev.clientX, top: ev.clientY };
+        // tamaño base: un poco más ancho que el texto, con límites
+        let previewWidth = Math.min(360, Math.max(180, Math.round(targetRect.width + 20)));
+        let previewHeight = Math.min(480, Math.round(previewWidth * 1.2));
+        // en pantallas pequeñas reducir más
+        if (vw <= 600) {
+          previewWidth = Math.min(260, vw - 24);
+          previewHeight = Math.min(360, Math.round(previewWidth * 1.2));
+        }
+        preview.style.width = previewWidth + 'px';
+        preview.style.height = previewHeight + 'px';
+
+        // posicionar y evitar salir de la ventana; posicion relativo al texto (no al bloque completo)
+        let x = Math.round(targetRect.right + pad);
+        let y = Math.round(targetRect.top + pad);
+        const vh = window.innerHeight;
+        if (x + previewWidth + pad > vw) x = Math.round(targetRect.left - previewWidth - pad);
+        if (x < pad) x = pad;
+        if (y + previewHeight + pad > vh) y = Math.max(pad, Math.round(targetRect.bottom - previewHeight - pad));
+
+        preview.style.left = x + 'px';
+        preview.style.top = y + 'px';
+        preview.style.display = 'block';
+
+        // limpiar contenido previo
+        preview.innerHTML = '';
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = '0';
+        iframe.src = folderPath + encodeURIComponent(file) + '#view=FitH';
+        preview.appendChild(iframe);
+      }, 180);
+    }
+
+    function hidePreview(immediate = false) {
+      // si immediate true, ocultar ya; si no, esperar un pequeño timeout para permitir entrar al panel
+      clearTimeout(previewTimeout);
+      clearTimeout(hidePreviewTimeout);
+      const preview = document.getElementById('preview');
+      if (!preview) return;
+      if (immediate) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        return;
+      }
+      hidePreviewTimeout = setTimeout(() => {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+      }, 260);
+    }
+
+    // permitir que al entrar el ratón en el preview no se oculte
+    (function(){
+      const preview = document.getElementById('preview');
+      if (!preview) return;
+      preview.addEventListener('mouseenter', () => {
+        clearTimeout(hidePreviewTimeout);
+      });
+      preview.addEventListener('mouseleave', () => hidePreview());
+    })();
 
     // Descargar todos los PDFs en un ZIP (inserta logo correspondiente por archivo)
     async function downloadCompleteZip() {
@@ -282,6 +362,31 @@
   updateThemeUI();
 
   loadPdfList();
+    // Polling para mantener la lista sincronizada sin pasos manuales
+    (function(){
+      let lastNamesTxt = null;
+      const pollInterval = 10000; // ms
+      async function pollNames() {
+        try {
+          const res = await fetch('./pdfs/names.txt', { cache: 'no-store' });
+          if (!res.ok) return;
+          const text = await res.text();
+          if (lastNamesTxt === null) {
+            lastNamesTxt = text;
+          } else if (text !== lastNamesTxt) {
+            // cambiar detectado -> recargar lista y actualizar UI
+            lastNamesTxt = text;
+            pdfFiles = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+            renderFiles(pdfFiles);
+            setStatus('Lista actualizada automáticamente (' + pdfFiles.length + ' archivos)');
+          }
+        } catch (err) {
+          console.warn('Error en polling names.txt:', err.message);
+        }
+      }
+      // empezar polling: primer chequeo tras intervalo para evitar doble fetch inmediato
+      setTimeout(() => { pollNames(); setInterval(pollNames, pollInterval); }, pollInterval);
+    })();
   // El botón ahora descarga el ZIP completo
   document.getElementById('download-zip').addEventListener('click', downloadCompleteZip);
     </script>

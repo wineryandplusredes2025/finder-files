@@ -19,6 +19,7 @@
       #search { width: 60%; padding: 8px; margin-bottom: 12px; border:1px solid #ccc; border-radius:4px }
       .file-item { padding: 8px 0; display:flex;align-items:center;justify-content:space-between;background:transparent }
       .file-item span { flex:1 }
+  .file-item button { padding:6px 10px; font-size:14px; margin-left:12px }
       .no-results { color: var(--muted) }
       #download-zip { margin-left: 12px }
       #status { color: var(--muted) }
@@ -26,6 +27,22 @@
       #slider { background:var(--toggle-bg) }
       .dark #slider { background:var(--toggle-bg) }
       .dark #knob { background:var(--knob-bg) }
+      /* mobile tweaks */
+      @media (max-width: 600px) {
+        #preview { max-width:260px; max-height:360px; }
+        .file-item { gap:8px }
+        .file-item button { padding:4px 8px; font-size:13px; }
+        #search { width: 100%; }
+      }
+      /* botón emoji/texto: por defecto (desktop) mostrar texto, ocultar emoji */
+      .btn-emoji { display: none; }
+      .btn-text { display: inline; }
+      button { cursor: pointer; }
+      /* en móvil mostrar solo emoji */
+      @media (max-width:600px) {
+        .btn-text { display: none !important; }
+        .btn-emoji { display: inline-block !important; margin-right:4px; }
+      }
     </style>
   </head>
   <body>
@@ -100,16 +117,34 @@
         div.className = 'file-item';
         const fileTitle = document.createElement('span');
           fileTitle.textContent = file;
-          // mostrar previsualizador al pasar el mouse
+          fileTitle.className = 'file-title';
+          // mostrar previsualizador al pasar el mouse (desktop)
           fileTitle.addEventListener('mouseenter', (ev) => showPreview(file, ev));
           fileTitle.addEventListener('mouseleave', () => hidePreview());
+          // en móvil/táctil abrir con click/tap (inmediato)
+          fileTitle.addEventListener('click', (ev) => {
+            if (window.innerWidth <= 600) {
+              ev.stopPropagation();
+              showPreview(file, ev, true);
+            }
+          });
         fileTitle.style.fontWeight = '500';
-        const logoBtn = document.createElement('button');
-        logoBtn.textContent = logo2Files.includes(file) ? 'Descargar Pdf' : 'Descargar con restricciones de alcohol';
-        logoBtn.onclick = () => {
-          const logoToUse = logo2Files.includes(file) ? './logo2.png' : logoUrl;
-          addLogoToPdf(folderPath + file, file, logoToUse);
-        };
+          const logoBtn = document.createElement('button');
+          // crear spans: uno para emoji (visible en móvil) y otro para texto (visible en desktop)
+          const emojiSpan = document.createElement('span');
+          emojiSpan.className = 'btn-emoji';
+          emojiSpan.textContent = '⬇️';
+          const textSpan = document.createElement('span');
+          textSpan.className = 'btn-text';
+          textSpan.textContent = logo2Files.includes(file) ? 'Descargar Pdf' : 'Descargar con restricciones de alcohol';
+          logoBtn.appendChild(emojiSpan);
+          logoBtn.appendChild(textSpan);
+          logoBtn.onclick = (ev) => {
+            // evitar que el click del botón abra el preview en móvil
+            ev.stopPropagation();
+            const logoToUse = logo2Files.includes(file) ? './logo2.png' : logoUrl;
+            addLogoToPdf(folderPath + file, file, logoToUse);
+          };
         div.appendChild(fileTitle);
         div.appendChild(logoBtn);
         fileListElement.appendChild(div);
@@ -167,10 +202,11 @@
     // Previsualizador PDF (carga al hover)
     let previewTimeout = null;
     let hidePreviewTimeout = null;
-    function showPreview(file, ev) {
+    function showPreview(file, ev, immediate = false) {
       // cancelar cualquier hide pendiente y debounce de carga
       clearTimeout(hidePreviewTimeout);
       clearTimeout(previewTimeout);
+      const delay = immediate ? 0 : 180;
       previewTimeout = setTimeout(() => {
         const preview = document.getElementById('preview');
         if (!preview) return;
@@ -209,8 +245,19 @@
         iframe.style.border = '0';
         iframe.src = folderPath + encodeURIComponent(file) + '#view=FitH';
         preview.appendChild(iframe);
-      }, 180);
+      }, delay);
     }
+
+    // cerrar preview si el usuario hace click fuera (útil en móvil)
+    document.addEventListener('click', (e) => {
+      const preview = document.getElementById('preview');
+      if (!preview) return;
+      if (preview.style.display === 'block') {
+        if (!preview.contains(e.target) && !e.target.classList.contains('file-title')) {
+          hidePreview(true);
+        }
+      }
+    });
 
     function hidePreview(immediate = false) {
       // si immediate true, ocultar ya; si no, esperar un pequeño timeout para permitir entrar al panel

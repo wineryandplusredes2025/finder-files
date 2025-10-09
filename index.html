@@ -19,7 +19,7 @@
     <h1>Buscador de PDFs</h1>
     <div>
       <input id="search" placeholder="Buscar..." />
-      <button id="download-zip">Descargar ZIP con restricciones de alcohol</button>
+      <button id="download-zip">Descargar ZIP completo</button>
     </div>
     <div id="file-list"></div>
 
@@ -123,12 +123,54 @@
       }
     }
 
-    // Descargar todos los PDFs con restricciones de alcohol en un ZIP (excluyendo los de 'Descargar Pdf')
+    // Descargar todos los PDFs en un ZIP (inserta logo correspondiente por archivo)
+    async function downloadCompleteZip() {
+      const filesToZip = Array.from(pdfFiles); // todos los archivos
+      const zip = new JSZip();
+      // Procesar cada PDF y agregarlo al ZIP
+      for (const file of filesToZip) {
+        try {
+          const existingPdfBytes = await fetch(folderPath + file).then(res => res.arrayBuffer());
+          // elegir logo según el archivo
+          const logoPath = logo2Files.includes(file) ? './logo2.png' : logoUrl;
+          const pngImageBytes = await fetch(logoPath).then(res => res.arrayBuffer());
+          const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+          const pngImage = await pdfDoc.embedPng(pngImageBytes);
+          const pages = pdfDoc.getPages();
+          for (const page of pages) {
+            const { width } = page.getSize();
+            const logoWidth = width - 60;
+            const originalWidth = 2315.4268;
+            const originalHeight = 90.8682;
+            const logoHeight = (logoWidth / originalWidth) * originalHeight;
+            page.drawImage(pngImage, {
+              x: 30,
+              y: 10,
+              width: logoWidth,
+              height: logoHeight,
+            });
+          }
+          const pdfBytes = await pdfDoc.save();
+          zip.file(file, pdfBytes);
+        } catch (error) {
+          console.warn('Error procesando ' + file + ': ' + error.message);
+        }
+      }
+      // Generar y descargar el ZIP
+      zip.generateAsync({ type: 'blob' }).then(function(content) {
+        const zipName = 'PDFs_completos.zip';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = zipName;
+        a.click();
+      });
+    }
+
+    // Función previa que generaba ZIP excluyendo archivos con logo2 (la dejamos disponible si se necesita)
     async function downloadAlcoholRestrictedZip() {
       const filesToZip = pdfFiles.filter(file => !logo2Files.includes(file));
       const zip = new JSZip();
       const logoPath = logoUrl;
-      // Procesar cada PDF y agregarlo al ZIP
       for (const file of filesToZip) {
         try {
           const existingPdfBytes = await fetch(folderPath + file).then(res => res.arrayBuffer());
@@ -155,7 +197,6 @@
           console.warn('Error procesando ' + file + ': ' + error.message);
         }
       }
-      // Generar y descargar el ZIP
       zip.generateAsync({ type: 'blob' }).then(function(content) {
         const zipName = 'PDFs_con_restricciones_de_alcohol.zip';
         const a = document.createElement('a');
@@ -165,9 +206,10 @@
       });
     }
 
-    // Inicializar
-    loadPdfList();
-    document.getElementById('download-zip').addEventListener('click', downloadAlcoholRestrictedZip);
+  // Inicializar
+  loadPdfList();
+  // El botón ahora descarga el ZIP completo
+  document.getElementById('download-zip').addEventListener('click', downloadCompleteZip);
     </script>
   </body>
 </html>

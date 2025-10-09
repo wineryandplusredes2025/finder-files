@@ -21,6 +21,7 @@
       <input id="search" placeholder="Buscar..." />
       <button id="download-zip">Descargar ZIP completo</button>
     </div>
+    <div id="status" style="margin-top:8px;color:#333"></div>
     <div id="file-list"></div>
 
     <script>
@@ -30,6 +31,13 @@
     const logoUrl = './logo.png';
     const fileListElement = document.getElementById('file-list');
     const searchInput = document.getElementById('search');
+
+    // Mostrar mensajes simples en la UI
+    function setStatus(msg) {
+      const el = document.getElementById('status');
+      if (el) el.textContent = msg;
+      else console.log('STATUS: ' + msg);
+    }
 
     const logo2Files = [
       'TEHUACAN BRILLANTE LATA SLEEK.pdf',
@@ -41,17 +49,20 @@
 
     async function loadPdfList() {
       try {
+        setStatus('Cargando lista de PDFs...');
         const res = await fetch('./pdfs/names.txt');
         if (!res.ok) throw new Error('No se pudo cargar la lista de PDFs');
         const text = await res.text();
         // dividir por líneas y filtrar vacías
         pdfFiles = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
         renderFiles(pdfFiles);
+        setStatus('Lista cargada (' + pdfFiles.length + ' archivos)');
       } catch (err) {
         console.warn('Fallo al cargar names.txt, usando lista embebida mínima. ' + err.message);
         // Fallback a la lista anterior mínima si existe un fallo
         pdfFiles = ['Agua de Piedra.pdf', 'MONTEVIEJO La Violeta Malbec.pdf'];
         renderFiles(pdfFiles);
+        setStatus('Usando fallback: names.txt no disponible');
       }
     }
 
@@ -93,7 +104,8 @@
     // Función para agregar logo a un PDF
     async function addLogoToPdf(pdfUrl, fileName, logoPath = logoUrl) {
       try {
-        const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+        setStatus('Procesando ' + fileName + '...');
+    const existingPdfBytes = await fetch(folderPath + encodeURIComponent(fileName)).then(res => res.arrayBuffer());
         const pngImageBytes = await fetch(logoPath).then(res => res.arrayBuffer());
         const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
         const pngImage = await pdfDoc.embedPng(pngImageBytes);
@@ -118,19 +130,26 @@
         a.href = url;
         a.download = fileName;
         a.click();
+        setStatus('Descarga completada: ' + fileName);
       } catch (error) {
+        console.error(error);
+        setStatus('Error al procesar ' + fileName + ': ' + error.message);
         alert('Error al agregar el logo: ' + error.message);
       }
     }
 
     // Descargar todos los PDFs en un ZIP (inserta logo correspondiente por archivo)
     async function downloadCompleteZip() {
+      const downloadBtn = document.getElementById('download-zip');
+      downloadBtn.disabled = true;
+      setStatus('Creando ZIP con ' + pdfFiles.length + ' archivos... (esto puede tardar)');
       const filesToZip = Array.from(pdfFiles); // todos los archivos
       const zip = new JSZip();
       // Procesar cada PDF y agregarlo al ZIP
       for (const file of filesToZip) {
         try {
-          const existingPdfBytes = await fetch(folderPath + file).then(res => res.arrayBuffer());
+          setStatus('Procesando: ' + file + ' (' + (filesToZip.indexOf(file) + 1) + '/' + filesToZip.length + ')');
+            const existingPdfBytes = await fetch(folderPath + encodeURIComponent(file)).then(res => res.arrayBuffer());
           // elegir logo según el archivo
           const logoPath = logo2Files.includes(file) ? './logo2.png' : logoUrl;
           const pngImageBytes = await fetch(logoPath).then(res => res.arrayBuffer());
@@ -154,6 +173,7 @@
           zip.file(file, pdfBytes);
         } catch (error) {
           console.warn('Error procesando ' + file + ': ' + error.message);
+          console.error(error);
         }
       }
       // Generar y descargar el ZIP
@@ -163,6 +183,12 @@
         a.href = URL.createObjectURL(content);
         a.download = zipName;
         a.click();
+        setStatus('ZIP creado: ' + zipName);
+        downloadBtn.disabled = false;
+      }).catch(err => {
+        console.error(err);
+        setStatus('Error al generar ZIP: ' + err.message);
+        downloadBtn.disabled = false;
       });
     }
 
@@ -173,7 +199,7 @@
       const logoPath = logoUrl;
       for (const file of filesToZip) {
         try {
-          const existingPdfBytes = await fetch(folderPath + file).then(res => res.arrayBuffer());
+            const existingPdfBytes = await fetch(folderPath + encodeURIComponent(file)).then(res => res.arrayBuffer());
           const pngImageBytes = await fetch(logoPath).then(res => res.arrayBuffer());
           const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
           const pngImage = await pdfDoc.embedPng(pngImageBytes);

@@ -1,4 +1,4 @@
-﻿Agua de Piedra.pdf
+Agua de Piedra.pdf
 AUSTUM Ribera del Duero DO Org..pdf
 BARTALI Chianti DOCG Fiasco Paglia 1000ml.pdf
 BIGI Orvieto Classico Secco DOC.pdf
@@ -22,7 +22,6 @@ Bodegas Icaro Ala Rota.pdf
 Bodegas Icaro Hyperion.pdf
 BRICCO DEI GUAZZI Barbera d'Asti DOCG Supperiore.pdf
 BRICCO DEI GUAZZI Gavi DOCG del Comune di Gavi.pdf
-CA´ BIANCA Langhe Nebbiolo DOC.pdf
 CA'BIANCA Barolo DOCG.pdf
 CA'BIANCA Brachetto d'Aquí DOCG.pdf
 CA'BIANCA Chersi Barbera d'Asti Sup. DOCG.pdf
@@ -57,6 +56,7 @@ CASTELLO MONACI Maru Salento IGT Negroamaro.pdf
 Castello Monaci Sciu Salento IGT Susumaniello.pdf
 CAVE DE LA PETITE FONTAINE, AOC SANCERRE.pdf
 CAVE DU VIDAUBAN Roubertas Côtes de Provence AOC.pdf
+CA´ BIANCA Langhe Nebbiolo DOC.pdf
 Cerveza Ocho Reales Ale.pdf
 Cerveza Ocho Reales Helles.pdf
 Cerveza Ocho Reales Lager Clara.pdf
@@ -66,14 +66,14 @@ Cerveza Ocho Reales Reserva Dortmunder.pdf
 Cerveza Ocho Reales Reserva.pdf
 CHATEAU CAPDET Saint Julien AOP.pdf
 CHATEAU CHARMANT Margaux AOP.pdf
-CHÂTEAU DE LAVERNETTE Beaujolais Village AOC.pdf
 CHATEAU DESMIRAL AOP Margaux.pdf
 CHATEAU HAUT BAGES LIBERAL Pauillac AOC.pdf
 CHATEAU LAGRAVE Saint Emilion AOC.pdf
-CHÂTEAU LE PAYRAL Bergerac AOC Blanc.pdf
-CHÂTEAU LE PAYRAL Bergerac AOC Rouge.pdf
 CHATEAU PADARNAC Pauillac AOC.pdf
 CHATEAU VOIGNY Sauternes AOC 375mL.pdf
+CHÂTEAU DE LAVERNETTE Beaujolais Village AOC.pdf
+CHÂTEAU LE PAYRAL Bergerac AOC Blanc.pdf
+CHÂTEAU LE PAYRAL Bergerac AOC Rouge.pdf
 CLOS DEL PORTAL Negre de Negres Priorat DOCa.pdf
 CLOS DEL PORTAL Somni Priorat DOCa.pdf
 CLOS DEL PORTAL Tros de Clos Priorat DOCa.pdf

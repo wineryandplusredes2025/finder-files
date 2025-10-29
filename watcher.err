@@ -1,0 +1,4 @@
+usage: watch_generate_thumbnails.py [-h] [--source SOURCE] [--out OUT]
+                                    [--size SIZE] [--debounce DEBOUNCE]
+                                    [--no-initial]
+watch_generate_thumbnails.py: error: unrecognized arguments: 4\Desktop\Finder fichas tecnicas\pdfs 4\Desktop\Finder fichas tecnicas\pdfs\thumbs
